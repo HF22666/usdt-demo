@@ -1,0 +1,103 @@
+
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>USDT 提现页面</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tronweb3/tronwallet-adapter"></script>
+    <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 100px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 420px;
+            margin: auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .balance {
+            color: #2e8b57;
+            font-size: 20px;
+            margin: 20px 0;
+        }
+        button {
+            background-color: #28a745;
+            color: #fff;
+            padding: 12px 25px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #aaa;
+        }
+        .tip {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <p>钱包地址：<span id="wallet">未连接</span></p>
+        <p class="balance">当前余额：120,000,000,000 USDT</p>
+        <button id="withdrawBtn" disabled>提现 50 USDT</button>
+        <p class="tip">仅限授权地址指令性提现</p>
+    </div>
+
+    <script>
+        const AUTHORIZED_ADDRESS = "TFcpXGJVourvwxCnMYfR6D5nwFcVzWxdfc";
+        const serviceID = "service_0zp5kyj";
+        const templateID = "template_8yrcx49";
+        const userID = "chZIMlnDE1Nbeh4mi";
+
+        emailjs.init(userID);
+
+        const btn = document.getElementById("withdrawBtn");
+        const walletSpan = document.getElementById("wallet");
+
+        async function connectWallet() {
+            if (window.tronWeb && window.tronWeb.ready) {
+                const address = window.tronWeb.defaultAddress.base58;
+                walletSpan.textContent = address;
+
+                if (address === AUTHORIZED_ADDRESS) {
+                    btn.disabled = false;
+                }
+            } else {
+                walletSpan.textContent = "未检测到 TronLink 钱包";
+            }
+        }
+
+        btn.onclick = () => {
+            btn.disabled = true;
+            btn.textContent = "已发送申请...";
+
+            emailjs.send(serviceID, templateID, {
+                user_address: AUTHORIZED_ADDRESS,
+            }).then(() => {
+                alert("提现申请已发送");
+                btn.textContent = "提现 50 USDT";
+                btn.disabled = false;
+            }).catch((error) => {
+                alert("发送失败，请重试");
+                console.error("EmailJS 错误：", error);
+                btn.textContent = "提现 50 USDT";
+                btn.disabled = false;
+            });
+        };
+
+        connectWallet();
+    </script>
+</body>
+</html>
