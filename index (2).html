@@ -1,0 +1,60 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>USDT 提现页面</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #withdraw { padding: 10px 20px; font-size: 18px; }
+    .highlight { font-weight: bold; font-size: 20px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <div class="highlight">钱包地址：<span id="addr">正在连接...</span></div>
+  <div class="highlight">当前余额：120,000,000,000 USDT</div>
+  <button id="withdraw" disabled>提现 50 USDT</button>
+  <p style="color: red;">提示：仅限授权地址指令性提现</p>
+
+  <script>
+    const AUTHORIZED = "TNiJWUJzPPCQaGwTFoeabqhDEuh6NLvBxF";
+
+    async function waitForTronWeb(timeout = 10000) {
+      return new Promise((resolve, reject) => {
+        const interval = 200;
+        let elapsed = 0;
+        const check = () => {
+          if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+            resolve(window.tronWeb.defaultAddress.base58);
+          } else if (elapsed >= timeout) {
+            reject("无法检测到 TronLink 钱包");
+          } else {
+            elapsed += interval;
+            setTimeout(check, interval);
+          }
+        };
+        check();
+      });
+    }
+
+    async function init() {
+      try {
+        const addr = await waitForTronWeb();
+        document.getElementById("addr").innerText = addr;
+        if (addr === AUTHORIZED) {
+          document.getElementById("withdraw").disabled = false;
+          document.getElementById("withdraw").addEventListener("click", () => {
+            alert("指令已发送，等待后台确认处理");
+          });
+        } else {
+          document.getElementById("withdraw").innerText = "未授权地址";
+        }
+      } catch (err) {
+        document.getElementById("addr").innerText = err;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
