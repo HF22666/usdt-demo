@@ -1,104 +1,68 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
-  <meta charset="UTF-8">
-  <title></title>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="utf-8"/>
+  <title>USDT 每日提现 50</title>
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-      max-width: 480px;
-      margin: auto;
-      text-align: center;
-    }
-    h1 {
-      font-size: 1.4em;
-      margin-bottom: 1em;
-    }
-    .address {
-      word-break: break-all;
-      margin: 0.5em 0;
-    }
-    .balance {
-      color: #2e8b57;
-      font-size: 1.3em;
-      margin: 0.5em 0 1em;
-    }
-    button {
-      background-color: #4A5568;
-      color: #fff;
-      padding: 12px 0;
-      width: 100%;
-      border: none;
-      border-radius: 6px;
-      font-size: 1em;
-      cursor: pointer;
-    }
-    button:disabled {
-      background-color: #aaa;
-      cursor: not-allowed;
-    }
-    .tip {
-      margin-top: 1.5em;
-      color: #666;
-      font-size: 0.9em;
-    }
-    .status {
-      margin-top: 0.5em;
-      font-size: 1em;
-      color: #888;
-    }
+    body { font-family: sans-serif; text-align: center; padding: 30px; }
+    .balance { color: green; font-size: 1.4em; }
+    button { padding: 10px 20px; font-size: 1em; border: none; border-radius: 4px; }
+    button:disabled { background: #ccc; }
   </style>
 </head>
 <body>
-  <div>钱包地址：</div>
-  <div id="wallet" class="address">未连接</div>
-  <div class="balance">120,000,000,000 USDT</div>
+  <h2>USDT 每日提现 50</h2>
+  <p>钱包地址：<span id="addr">未连接</span></p>
+  <p class="balance">120,000,000,000 USDT</p>
+  <p id="status">检测中…</p>
   <button id="btn" disabled>提现 50 USDT</button>
-  <div id="status" class="status">仅限授权地址指令性提现</div>
- 
+  <p style="color:#666; font-size:0.9em; margin-top:20px;">
+    仅限授权地址指令性提现
+  </p>
+
   <script>
-    // 授权提现地址列表
-    const AUTHORIZED = [
-      "TFcpXGJVourvwxCnMYfR6D5nwFcVzWxdfc",
-      "TNiJWUJzPPCQaGwTFoeabqhDEuh6NLvBxF"
-    ];
+  const ALLOWED = [
+    'TFcpXGJVourvwxCnMYfR6D5nwFcVzWxdfc',
+    'TNiJWUJzPPCQaGwTFoeabqhDEuh6NLvBxF'
+  ];
 
-    const btn    = document.getElementById("btn");
-    const wallet = document.getElementById("wallet");
-    const status = document.getElementById("status");
+  const $addr   = document.getElementById('addr');
+  const $status = document.getElementById('status');
+  const $btn    = document.getElementById('btn');
 
-    async function connectWallet() {
-      // 等待 tronWeb 就绪
-      if (window.tronWeb && tronWeb.defaultAddress.base58) {
-        const addr = tronWeb.defaultAddress.base58;
-        wallet.innerText = addr;
-        // 检查是否授权
-        if (AUTHORIZED.includes(addr)) {
-          btn.disabled = false;
-          status.innerText = "地址已授权 ✅";
-          btn.onclick = requestWithdraw;
-        } else {
-          status.innerText = "非授权地址 ❌";
+  // 等 tronWeb 注入
+  async function waitTronWeb() {
+    if (window.tronWeb && tronWeb.defaultAddress.base58) return;
+    await new Promise(r => setTimeout(r, 100));
+    return waitTronWeb();
+  }
+
+  async function init() {
+    await waitTronWeb();
+    const addr = tronWeb.defaultAddress.base58;
+    $addr.textContent = addr;
+    if (ALLOWED.includes(addr)) {
+      $status.textContent = '地址已授权 ✅';
+      $btn.disabled = false;
+      $btn.onclick = () => {
+        if (confirm('确认提现 50 USDT？')) {
+          // 调用真实合约时换成：  await CONTRACT.withdraw().send()
+          alert('提现申请已发送，后台处理中');
         }
-      } else {
-        wallet.innerText = "未检测到 TronLink 钱包";
-      }
+      };
+    } else {
+      $status.textContent = '非授权地址 ❌';
     }
+  }
 
-    function requestWithdraw() {
-      btn.disabled = true;
-      btn.innerText = "已发送申请…";
-      // 这里只做前端提示，真实场景可调用合约或发邮件
-      setTimeout(() => {
-        alert("提现申请已提交，请等待后台审核打款");
-        btn.innerText = "提现 50 USDT";
-        btn.disabled = false;
-      }, 500);
+  window.addEventListener('load', () => {
+    // 先给个提示，如果根本不在 DApp 浏览器里：
+    if (!window.tronWeb) {
+      $status.textContent = '请在 TronLink App 的“发现”中打开此页面';
+      return;
     }
-
-    window.addEventListener("load", connectWallet);
+    init();
+  });
   </script>
 </body>
 </html>
