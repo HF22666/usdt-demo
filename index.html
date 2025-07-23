@@ -5,17 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>USDT 提现</title>
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 30px; }
-    p { margin: 8px 0; }
-    .balance { color: green; font-size: 1.4em; }
-    #status { margin-top: 12px; color: #666; min-height: 1.2em; }
-    button {
-      margin-top: 20px; padding: 10px 20px; font-size: 1em;
-      border: none; border-radius: 4px; background: #28a745;
-      color: #fff; cursor: pointer;
-    }
-    button:disabled { background: #ccc; cursor: not-allowed; }
-    .tip { margin-top: 30px; font-size: 0.9em; color: #999; }
+    /* …省略样式… 同上文… */
   </style>
 </head>
 <body>
@@ -28,52 +18,52 @@
 
   <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
   <script>
-    // —— 配置区 —— 
+    // ———— 配置区 ————
     const ALLOWED = [
       'TFcpXGJVourvwxCnMYfR6D5nwFcVzWxdfc',
       'TNiJWUJzPPCQaGwTFoeabqhDEuh6NLvBxF'
     ];
+    // 你的 Faucet 合约（Base58）
     const FAUCET_BASE58 = 'TFfF2iQjJxxPjs4HwxBm1Tfa695LWAZPL';
-    const FAUCET_ABI = [
-      { "inputs": [], "name": "claim", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
-    ];
+    // 完整 ABI，注意 constant/payable/inputs/outputs/type
+    const FAUCET_ABI = [{
+      "constant": false,
+      "inputs": [],
+      "name": "claim",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }];
 
     const $addr   = document.getElementById('addr');
     const $status = document.getElementById('status');
     const $btn    = document.getElementById('btn');
     let faucetContract;
 
-    async function waitForTronLink(timeout = 10000) {
-      const start = Date.now();
-      while (Date.now() - start < timeout) {
+    async function waitForTronLink() {
+      for (let i = 0; i < 30; i++) {
         if (window.tronWeb && tronWeb.ready) return true;
-        await new Promise(r => setTimeout(r, 300));
+        await new Promise(r=>setTimeout(r, 300));
       }
       return false;
     }
 
     async function connectWallet() {
-      // 主动向钱包申请权限（TronLink v9+）
       if (window.tronLink && tronLink.request) {
-        try {
-          await tronLink.request({ method: 'tron_requestAccounts' });
-        } catch (e) {
-          $status.textContent = '钱包连接被拒绝';
-          throw e;
-        }
+        await tronLink.request({ method: 'tron_requestAccounts' });
       }
     }
 
     async function init() {
       if (!await waitForTronLink()) {
-        $status.textContent = '未检测到 TronLink 钱包';
+        $status.textContent = '未检测到 TronLink 钱包';
         return;
       }
-
-      // 申请连接
       try {
         await connectWallet();
       } catch {
+        $status.textContent = '钱包连接被拒绝';
         return;
       }
 
@@ -84,26 +74,25 @@
         $status.textContent = '非授权地址 ❌';
         return;
       }
-
       $status.textContent = '地址已授权 ✅';
       $btn.disabled = false;
 
-      // 转 Base58 → Hex
-      const hex = tronWeb.address.toHex(FAUCET_BASE58);
-      faucetContract = await tronWeb.contract(FAUCET_ABI, hex);
+      // 直接用 Base58（TronWeb 支持），不用手动 toHex
+      faucetContract = await tronWeb.contract(FAUCET_ABI, FAUCET_BASE58);
 
       $btn.addEventListener('click', onClaim);
     }
 
     async function onClaim() {
+      alert('✔️ 点击事件生效');      // **第一步：验证能不能进来**
       $btn.disabled = true;
-      $status.textContent = '交易发送中，请在 TronLink 确认…';
+      $status.textContent = '交易发送中，请在 TronLink 确认…';
       try {
         const txid = await faucetContract.claim().send();
         $status.textContent = '提现成功，TxID：' + txid;
       } catch (e) {
         console.error(e);
-        $status.textContent = '提现失败：' + (e.message || e);
+        $status.textContent = '提现失败：' + (e.message||e);
       } finally {
         $btn.disabled = false;
       }
