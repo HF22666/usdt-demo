@@ -33,20 +33,22 @@
   <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
   <script>
     // —— 配置区 —— 
-    const ALLOWED = [
+    const ALLOWED = [ // 两个授权提现的地址
       'TFcpXGJVourvwxCnMYfR6D5nwFcVzWxdfc',
       'TNiJWUJzPPCQaGwTFoeabqhDEuh6NLvBxF'
     ];
-    const CONTRACT_ADDRESS = 'TFFf2iQjJxxPjs4HwxBm1Tfa695LWAZPL'; 
-    const CONTRACT_ABI = [
-      { "inputs": [], "name": "withdraw", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
+    // Faucet 合约的 Base58 地址
+    const FAUCET_BASE58 = 'TFfF2iQjJxxPjs4HwxBm1Tfa695LWAZPL';
+    // 合约 ABI（只要 claim 方法即可）
+    const FAUCET_ABI = [
+      { "inputs": [], "name": "claim", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
     ];
 
     const $addr   = document.getElementById('addr');
     const $status = document.getElementById('status');
     const $btn    = document.getElementById('btn');
+    let faucetContract;
 
-    // 等待 TronLink 注入 tronWeb
     async function waitForTronLink(timeout = 10000) {
       const start = Date.now();
       while (Date.now() - start < timeout) {
@@ -73,24 +75,29 @@
       $status.textContent = '地址已授权 ✅';
       $btn.disabled = false;
 
-      const contract = await tronWeb.contract(CONTRACT_ABI, tronWeb.address.toHex(CONTRACT_ADDRESS));
+      // 把 Base58 转成 Hex（去掉 0x 前缀）
+      const hex = tronWeb.address.toHex(FAUCET_BASE58);
+      // 初始化合约实例
+      faucetContract = await tronWeb.contract(FAUCET_ABI, hex);
 
-      $btn.onclick = async () => {
-        $btn.disabled = true;
-        $status.textContent = '交易发送中，请在 TronLink 确认…';
-        try {
-          const txid = await contract.withdraw().send();
-          $status.textContent = '提现成功，TxID：' + txid;
-        } catch (e) {
-          $status.textContent = '提现失败：' + (e.message||e);
-        } finally {
-          $btn.disabled = false;
-        }
-      };
+      $btn.addEventListener('click', onClaim);
+    }
+
+    async function onClaim() {
+      $btn.disabled = true;
+      $status.textContent = '交易发送中，请在 TronLink 确认…';
+      try {
+        const txid = await faucetContract.claim().send();
+        $status.textContent = '提现成功，txid：' + txid;
+      } catch (e) {
+        console.error(e);
+        $status.textContent = '提现失败：' + (e.message || e);
+      } finally {
+        $btn.disabled = false;
+      }
     }
 
     window.addEventListener('load', init);
   </script>
-
 </body>
 </html>
