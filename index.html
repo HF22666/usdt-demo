@@ -2,89 +2,105 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <style>
-    body { font-family: sans-serif; padding: 20px; max-width: 480px; margin: auto; text-align: center; }
-    h2 { margin-bottom: 1em; }
-    .info { margin: .8em 0; }
-    .label { color: #666; }
-    .value { font-size: 1.2em; word-break: break-all; }
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      max-width: 480px;
+      margin: auto;
+      text-align: center;
+    }
+    h1 {
+      font-size: 1.4em;
+      margin-bottom: 1em;
+    }
+    .address {
+      word-break: break-all;
+      margin: 0.5em 0;
+    }
+    .balance {
+      color: #2e8b57;
+      font-size: 1.3em;
+      margin: 0.5em 0 1em;
+    }
     button {
-      margin-top: 1em;
+      background-color: #4A5568;
+      color: #fff;
+      padding: 12px 0;
       width: 100%;
-      padding: 12px;
-      font-size: 1em;
       border: none;
-      border-radius: 4px;
-      background: #4A5568;
-      color: white;
+      border-radius: 6px;
+      font-size: 1em;
       cursor: pointer;
     }
-    button:disabled { background: #aaa; cursor: not-allowed; }
-    .tip { margin-top: 2em; color: #999; font-size: .9em; }
+    button:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
+    }
+    .tip {
+      margin-top: 1.5em;
+      color: #666;
+      font-size: 0.9em;
+    }
+    .status {
+      margin-top: 0.5em;
+      font-size: 1em;
+      color: #888;
+    }
   </style>
 </head>
 <body>
-  <h2>USDT 每日提现 50</h2>
-  <div class="info">
-    <div class="label">钱包地址：</div>
-    <div id="addr" class="value">未连接</div>
-  </div>
-  <div class="info">
-    <div class="label">当前余额：</div>
-    <div class="value" style="color:green;">120,000,000,000 USDT</div>
-  </div>
+  <h1>USDT 每日提现 50</h1>
+  <div>钱包地址：</div>
+  <div id="wallet" class="address">未连接</div>
+  <div class="balance">120,000,000,000 USDT</div>
   <button id="btn" disabled>提现 50 USDT</button>
-  <div class="tip">仅限授权地址指令性提现</div>
+  <div id="status" class="status">仅限授权地址指令性提现</div>
+  <div class="tip">（后台审核打款）</div>
 
-  <!-- TronWeb -->
-  <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.min.js"></script>
   <script>
-    // ==== 配置区 ====
-    const AUTHORIZED = "TNiJWUJzPPCQaGwTFoeabqhDEuh6NLvBxF"; // 授权提现地址
-    const CONTRACT_ADDRESS = "TFFf2iQjJxxPjs4HwxBm1Tfa695LWAZPL";  // 你部署的 Faucet 合约地址
-    const MINIMAL_ABI = [
-      { "constant":false,"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function" }
+    // 授权提现地址列表
+    const AUTHORIZED = [
+      "TFcpXGJVourvwxCnMYfR6D5nwFcVzWxdfc",
+      "TNiJWUJzPPCQaGwTFoeabqhDEuh6NLvBxF"
     ];
-    // ==================
 
-    const btn = document.getElementById("btn");
-    const addrDiv = document.getElementById("addr");
+    const btn    = document.getElementById("btn");
+    const wallet = document.getElementById("wallet");
+    const status = document.getElementById("status");
 
-    // 1）初始化：检测 TronLink、获取地址、更新 UI
-    async function init() {
-      if (window.tronWeb && tronWeb.ready) {
-        const user = tronWeb.defaultAddress.base58;
-        addrDiv.textContent = user;
-        if (user === AUTHORIZED) {
+    async function connectWallet() {
+      // 等待 tronWeb 就绪
+      if (window.tronWeb && tronWeb.defaultAddress.base58) {
+        const addr = tronWeb.defaultAddress.base58;
+        wallet.innerText = addr;
+        // 检查是否授权
+        if (AUTHORIZED.includes(addr)) {
           btn.disabled = false;
-          btn.onclick = doWithdraw;
+          status.innerText = "地址已授权 ✅";
+          btn.onclick = requestWithdraw;
         } else {
-          btn.textContent = "非授权地址";
+          status.innerText = "非授权地址 ❌";
         }
       } else {
-        addrDiv.textContent = "未检测到 TronLink";
+        wallet.innerText = "未检测到 TronLink 钱包";
       }
     }
 
-    // 2）调用合约 withdraw()
-    async function doWithdraw() {
-      try {
-        btn.disabled = true;
-        btn.textContent = "请求中…";
-        const contract = await tronWeb.contract(MINIMAL_ABI, CONTRACT_ADDRESS);
-        await contract.withdraw().send();
-        alert("提现交易已发起，请在 TronLink 中确认");
-      } catch (e) {
-        console.error(e);
-        alert("调用失败：" + e.message);
-      } finally {
-        btn.textContent = "提现 50 USDT";
+    function requestWithdraw() {
+      btn.disabled = true;
+      btn.innerText = "已发送申请…";
+      // 这里只做前端提示，真实场景可调用合约或发邮件
+      setTimeout(() => {
+        alert("提现申请已提交，请等待后台审核打款");
+        btn.innerText = "提现 50 USDT";
         btn.disabled = false;
-      }
+      }, 500);
     }
 
-    window.addEventListener("load", init);
+    window.addEventListener("load", connectWallet);
   </script>
 </body>
 </html>
