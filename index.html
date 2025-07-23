@@ -2,13 +2,13 @@
 <html lang="zh">
 <head>
   <meta charset="utf-8"/>
+  <title>USDT 提现</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <style>
     body { font-family:sans-serif; text-align:center; padding:30px; }
-    h2 { margin-bottom:20px; }
     p { margin:8px 0; }
     .balance { color:green; font-size:1.4em; }
-    #status { margin-top:12px; color:#666; }
+    #status { margin-top:12px; color:#666; min-height:1.2em; }
     button {
       margin-top:20px;
       padding:10px 20px;
@@ -20,122 +20,86 @@
       cursor:pointer;
     }
     button:disabled { background:#ccc; cursor:not-allowed; }
+    .tip { margin-top:30px; font-size:0.9em; color:#999; }
   </style>
 </head>
 <body>
+
   <p>钱包地址：<span id="addr">未连接</span></p>
-  <p class="balance">120,000,000,000 USDT</p>
-  <p id="status">正在检测钱包…</p>
+  <p class="balance">120,000,000,000 USDT</p>
   <button id="btn" disabled>提现 50 USDT</button>
-  <p style="margin-top:30px;font-size:0.9em;color:#999;">
-    仅限授权地址指令性提现
-  </p>
+  <p id="status"></p>
+  <p class="tip">仅限授权地址指令性提现</p>
 
   <script>
-    // ——— 配置项 ———
+    // —— 配置区 —— 
     const ALLOWED = [
       'TFcpXGJVourvwxCnMYfR6D5nwFcVzWxdfc',
       'TNiJWUJzPPCQaGwTFoeabqhDEuh6NLvBxF'
     ];
-    const CONTRACT_ADDRESS = 'TFFf2iQjJxxPjs4HwxBm1Tfa695LWAZPL';  // 你自己的合约地址
-    const USDT_DECIMALS    = 6;    // TRC20 USDT 的小数位
-    const WITHDRAW_AMOUNT  = 50;   // 单次提现数量（不带小数位）
-
-    // 合约 ABI，根据你的源码生成
+    const CONTRACT_ADDRESS = 'TFFf2iQjJxxPjs4HwxBm1Tfa695LWAZPL'; // 部署好的合约地址
+    const USDT_DECIMALS   = 6;
+    const WITHDRAW_AMOUNT = 50; // 单位 USDT
     const CONTRACT_ABI = [
-      {
-        "inputs": [
-          {"internalType":"address","name":"_usdt","type":"address"},
-          {"internalType":"address","name":"_pool","type":"address"}
-        ],
-        "stateMutability":"nonpayable",
-        "type":"constructor"
-      },
-      {
-        "inputs":[
-          {"internalType":"address","name":"user","type":"address"},
-          {"internalType":"bool","name":"status","type":"bool"}
-        ],
-        "name":"setAuth",
-        "outputs":[],
-        "stateMutability":"nonpayable",
-        "type":"function"
-      },
-      {
-        "inputs":[],
-        "name":"claim",
-        "outputs":[],
-        "stateMutability":"nonpayable",
-        "type":"function"
-      },
-      {
-        "inputs":[{"internalType":"address","name":"_pool","type":"address"}],
-        "name":"setPool",
-        "outputs":[],
-        "stateMutability":"nonpayable",
-        "type":"function"
-      },
-      {"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
-      {"inputs":[],"name":"pool","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
-      {"inputs":[],"name":"usdt","outputs":[{"internalType":"contract ITRC20","name":"","type":"address"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"authorized","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
-      {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"lastClaim","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
+      { "inputs": [], "name": "claim", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
     ];
 
     const $addr   = document.getElementById('addr');
     const $status = document.getElementById('status');
     const $btn    = document.getElementById('btn');
 
-    // 等待 TronLink 注入 tronWeb
-    async function waitTronWeb() {
-      if (window.tronWeb && tronWeb.ready) return;
-      await new Promise(r => setTimeout(r, 100));
-      return waitTronWeb();
+    // 轮询等待 tronWeb 就绪
+    async function waitForTronLink(timeout = 10000) {
+      const start = Date.now();
+      while (Date.now() - start < timeout) {
+        if (window.tronWeb && tronWeb.ready) return true;
+        await new Promise(r => setTimeout(r, 300));
+      }
+      return false;
     }
 
     async function init() {
-      await waitTronWeb();
-
-      const addr = tronWeb.defaultAddress.base58;
-      $addr.textContent = addr;
-      $status.textContent = '检测到钱包';
-
-      // 判断权限
-      if (!ALLOWED.includes(addr)) {
-        $status.textContent = '非授权地址 ❌';
+      const ready = await waitForTronLink();
+      if (!ready) {
+        $status.textContent = '未检测到 TronLink 钱包';
         return;
       }
-      $status.textContent = '地址已授权 ✅';
+
+      // TronLink 就绪
+      const addr = tronWeb.defaultAddress.base58;
+      $addr.textContent = addr;
+
+      if (!ALLOWED.includes(addr)) {
+        $status.textContent = '非授权地址 ❌';
+        return;
+      }
+
+      // 授权地址
+      $status.textContent = '地址已授权 ✅';
       $btn.disabled = false;
 
-      // 实例化合约
+      // 获取合约实例
       const contract = await tronWeb.contract(CONTRACT_ABI, CONTRACT_ADDRESS);
 
       $btn.onclick = async () => {
         $btn.disabled = true;
-        $status.textContent = '交易发送中，请在TronLink确认…';
+        $status.textContent = '交易发送中，请在 TronLink 确认…';
         try {
-          const amount = WITHDRAW_AMOUNT * (10 ** USDT_DECIMALS);
-          // 发起提现 tx
+          // 发起 claim()
           const tx = await contract.claim().send();
           console.log('txid', tx);
           $status.textContent = '提现成功，txid：' + tx;
-        } catch (err) {
-          console.error(err);
-          $status.textContent = '提现失败：' + (err.message||err);
+        } catch (e) {
+          console.error(e);
+          $status.textContent = '提现失败：' + (e.message || e);
         } finally {
           $btn.disabled = false;
         }
       };
     }
 
-    window.addEventListener('load', () => {
-      if (!window.tronWeb) {
-        $status.textContent = '请在 TronLink App 内置浏览器中打开';
-        return;
-      }
-      init();
-    });
+    window.addEventListener('load', init);
   </script>
+
 </body>
 </html>
