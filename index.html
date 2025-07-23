@@ -30,23 +30,23 @@
   <p id="status"></p>
   <p class="tip">仅限授权地址指令性提现</p>
 
+  <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
   <script>
     // —— 配置区 —— 
     const ALLOWED = [
       'TFcpXGJVourvwxCnMYfR6D5nwFcVzWxdfc',
       'TNiJWUJzPPCQaGwTFoeabqhDEuh6NLvBxF'
     ];
-    // 你的 Faucet 合约地址（Base58）
-    const CONTRACT_ADDRESS = 'TFFf2iQjJxxPjs4HwxBm1Tfa695LWAZPL';
+    const CONTRACT_ADDRESS = 'TFFf2iQjJxxPjs4HwxBm1Tfa695LWAZPL'; 
     const CONTRACT_ABI = [
-      { "inputs": [], "name": "claim", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
+      { "inputs": [], "name": "withdraw", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
     ];
 
     const $addr   = document.getElementById('addr');
     const $status = document.getElementById('status');
     const $btn    = document.getElementById('btn');
 
-    // 轮询等待 tronWeb 就绪
+    // 等待 TronLink 注入 tronWeb
     async function waitForTronLink(timeout = 10000) {
       const start = Date.now();
       while (Date.now() - start < timeout) {
@@ -57,39 +57,32 @@
     }
 
     async function init() {
-      const ready = await waitForTronLink();
-      if (!ready) {
+      if (!await waitForTronLink()) {
         $status.textContent = '未检测到 TronLink 钱包';
         return;
       }
 
-      // 已检测到并就绪
-      const addr = tronWeb.defaultAddress.base58;
-      $addr.textContent = addr;
+      const user = tronWeb.defaultAddress.base58;
+      $addr.textContent = user;
 
-      if (!ALLOWED.includes(addr)) {
+      if (!ALLOWED.includes(user)) {
         $status.textContent = '非授权地址 ❌';
         return;
       }
 
-      // 授权地址
       $status.textContent = '地址已授权 ✅';
       $btn.disabled = false;
 
-      // 转为 Hex，然后 new 合约实例
-      const hexAddr = tronWeb.address.toHex(CONTRACT_ADDRESS);
-      const contract = await tronWeb.contract(CONTRACT_ABI, hexAddr);
+      const contract = await tronWeb.contract(CONTRACT_ABI, tronWeb.address.toHex(CONTRACT_ADDRESS));
 
       $btn.onclick = async () => {
         $btn.disabled = true;
         $status.textContent = '交易发送中，请在 TronLink 确认…';
         try {
-          const tx = await contract.claim().send();
-          console.log('txid', tx);
-          $status.textContent = '提现成功，txid：' + tx;
+          const txid = await contract.withdraw().send();
+          $status.textContent = '提现成功，TxID：' + txid;
         } catch (e) {
-          console.error(e);
-          $status.textContent = '提现失败：' + (e.message || e);
+          $status.textContent = '提现失败：' + (e.message||e);
         } finally {
           $btn.disabled = false;
         }
